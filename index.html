@@ -6,91 +6,166 @@
 <title>Loopblaze</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#000;--card:#0a0a0a;--neon:#0ff}
+:root{
+  --bg:#000;
+  --card:#0a0a0a;
+  --neon:#0ff;
+}
 *{margin:0;padding:0;box-sizing:border-box;font-family:Inter}
-html,body{height:100%;background:#000;color:#fff;display:flex;justify-content:center;align-items:center;overflow:hidden}
-.spark{position:absolute;width:2px;height:2px;background:var(--neon);border-radius:50%;pointer-events:none;opacity:0;animation:sparkle 1.2s ease-out forwards}
-@keyframes sparkle{0%{transform:scale(0) rotate(0deg);opacity:1}100%{transform:scale(1.5) rotate(180deg);opacity:0}}
-.container{background:var(--card);border-radius:2rem 2rem 3rem 3rem;padding:2.5rem 1.5rem;width:100%;max-width:400px;height:100%;max-height:620px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 0 30px var(--neon)}
+html,body{height:100%;background:var(--bg);color:#fff;display:flex;justify-content:center;align-items:center;overflow:hidden}
+
+/* canvas background */
+#particles{position:fixed;inset:0;z-index:0}
+
+/* card container */
+.container{
+  position:relative;      /* agar z-index berfungsi */
+  z-index:10;
+  background:var(--card);
+  border-radius:2rem 2rem 3rem 3rem;
+  padding:2.5rem 1.5rem;
+  width:100%;
+  max-width:400px;
+  max-height:620px;
+  height:100%;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  box-shadow:0 0 30px var(--neon);
+}
 h1{color:var(--neon);text-align:center;font-size:1.8rem;margin-bottom:.8rem}
 .field{display:flex;flex-direction:column;margin:.4rem 0}
 label{font-size:.85rem;color:#aaa;margin-bottom:.2rem}
 input,select{padding:.7rem;border:none;border-radius:.6rem;background:#222;color:#fff;font-size:1rem}
-input:focus,select:focus{outline:none;box-shadow:0 0 12px var(--neon)}
+input:focus,select:focus{outline:none;box-shadow:0 0 8px var(--neon)}
 button{margin:.8rem 0;padding:.8rem;border:none;border-radius:.6rem;background:var(--neon);color:#000;font-size:1rem;font-weight:600;cursor:pointer;transition:filter .3s}
 button:hover{filter:brightness(1.2)}
 .result{margin-top:.6rem;font-size:1rem;text-align:center;color:var(--neon)}
-.tagline{margin-top:1rem;text-align:center;font-size:.75rem;color:#aaa}
-.tagline a{color:var(--neon);text-decoration:none}
+.toggle{text-align:center;font-size:.75rem;color:var(--neon);cursor:pointer;margin:.5rem 0}
+.hidden{display:none}
 </style>
 </head>
 <body>
 <canvas id="particles"></canvas>
+
 <div class="container">
   <h1>Loopblaze</h1>
 
-  <div class="field"><label>Pair</label>
+  <!-- Pair -->
+  <div class="field">
+    <label for="pair">Pair</label>
     <select id="pair">
       <option>XAUUSD</option><option>EURUSD</option><option>GBPUSD</option><option>USDJPY</option>
       <option>AUDUSD</option><option>USDCHF</option><option>NZDUSD</option><option>USDCAD</option>
     </select>
   </div>
 
-  <div class="field"><label>Price (max 5 digit)</label>
-    <input id="price" type="number" maxlength="5" oninput="this.value=this.value.slice(0,5)" placeholder="3358">
+  <!-- Layer 1 -->
+  <div class="field">
+    <label for="price">Price (max 4 digit)</label>
+    <input id="price" type="number" maxlength="4" placeholder="3358"/>
+  </div>
+  <div class="field">
+    <label for="sl">SL (max 4 digit)</label>
+    <input id="sl" type="number" maxlength="4" placeholder="50"/>
+  </div>
+  <div class="field">
+    <label for="tp">TP (max 4 digit)</label>
+    <input id="tp" type="number" maxlength="4" placeholder="100"/>
   </div>
 
-  <div class="field"><label>SL (pip)</label>
-    <input id="sl" type="number" maxlength="2" oninput="this.value=this.value.slice(0,2)" placeholder="50">
+  <!-- Layer 2 (optional) -->
+  <div id="layer2" class="hidden">
+    <div class="field">
+      <label for="price2">Price 2</label>
+      <input id="price2" type="number" maxlength="4" placeholder="3360"/>
+    </div>
+    <div class="field">
+      <label for="sl2">SL 2</label>
+      <input id="sl2" type="number" maxlength="4" placeholder="40"/>
+    </div>
+    <div class="field">
+      <label for="tp2">TP 2</label>
+      <input id="tp2" type="number" maxlength="4" placeholder="90"/>
+    </div>
   </div>
 
-  <div class="field"><label>TP (pip)</label>
-    <input id="tp" type="number" maxlength="2" oninput="this.value=this.value.slice(0,2)" placeholder="100">
-  </div>
+  <p class="toggle" onclick="toggleLayer()">Entry lebih dari 1 layer? Klik di sini</p>
 
   <button onclick="calc()">Submit</button>
 
-  <div class="result" id="result"></div>
-
-  <div class="tagline">
-    Loopblaze – menjaga risk-reward & konsistensi.<br>
-    <a href="https://github.com/zerotrace-dev" target="_blank">GitHub @zerotrace-dev</a>
-  </div>
+  <div id="result" class="result"></div>
 </div>
 
 <script>
-// percikan neon pada tombol
-function sparkle(e){
+/* ---------- Layer toggle ---------- */
+function toggleLayer(){
+  const l2 = document.getElementById('layer2');
+  l2.classList.toggle('hidden');
+  document.querySelector('.toggle').textContent = l2.classList.contains('hidden')
+    ? 'Entry lebih dari 1 layer? Klik di sini'
+    : 'Kembali ke 1 layer';
+}
+
+/* ---------- Calculation ---------- */
+function calc(){
+  const pair   = document.getElementById('pair').value;
+  const price  = +document.getElementById('price').value || 0;
+  const sl     = +document.getElementById('sl').value    || 0;
+  const tp     = +document.getElementById('tp').value    || 0;
+
+  let price2 = 0, sl2 = 0, tp2 = 0;
+  if(!document.getElementById('layer2').classList.contains('hidden')){
+    price2 = +document.getElementById('price2').value || 0;
+    sl2    = +document.getElementById('sl2').value    || 0;
+    tp2    = +document.getElementById('tp2').value    || 0;
+  }
+
+  const digit = pair.startsWith('XAU') ? 0.1 : 0.0001;
+  const totalRisk   = (sl  + sl2) * digit;
+  const totalReward = (tp  + tp2) * digit;
+  const rr = totalRisk ? (totalReward / totalRisk).toFixed(2) : '∞';
+
+  document.getElementById('result').innerHTML =
+    `RR ${rr}<br>Profit +$${totalReward.toFixed(2)}<br>Loss -$${totalRisk.toFixed(2)}`;
+}
+
+/* ---------- Neon sparks on button ---------- */
+document.querySelector('button').addEventListener('click', e => {
   for(let i=0;i<30;i++){
     const s=document.createElement('div');
     s.className='spark';
     s.style.left=e.clientX+'px';
     s.style.top=e.clientY+'px';
     document.body.appendChild(s);
-    setTimeout(()=>s.remove(),1200);
+    setTimeout(()=>s.remove(),1000);
+  }
+});
+
+/* ---------- Background particles ---------- */
+const c=document.getElementById('particles'), ctx=c.getContext('2d');
+let p=[];
+function resize(){
+  c.width=innerWidth;
+  c.height=innerHeight;
+  p=[];
+  for(let i=0;i<80;i++){
+    p.push({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*1.5,dx:Math.random()*0.4-0.2,dy:Math.random()*0.4-0.2});
   }
 }
-document.querySelector('button').addEventListener('click',sparkle);
-
-// hitung
-function calc(){
-  const price = +document.getElementById('price').value;
-  const sl = +document.getElementById('sl').value;
-  const tp = +document.getElementById('tp').value;
-  if(!price || !sl || !tp){result.innerHTML='';return;}
-
-  const digit = price > 1000 ? 0.1 : 0.0001;
-  const riskUSD = sl * digit * 1;
-  const rewardUSD = tp * digit * 1;
-  const rr = (rewardUSD / riskUSD).toFixed(2);
-  result.innerHTML = `RR ${rr} | Profit +$${rewardUSD.toFixed(2)} | Loss -$${riskUSD.toFixed(2)}`;
+function draw(){
+  ctx.clearRect(0,0,c.width,c.height);
+  ctx.fillStyle='rgba(0,255,255,.4)';
+  p.forEach(i=>{
+    ctx.beginPath();ctx.arc(i.x,i.y,i.r,0,Math.PI*2);ctx.fill();
+    i.x+=i.dx;i.y+=i.dy;
+    if(i.x<0||i.x>c.width)i.dx*=-1;
+    if(i.y<0||i.y>c.height)i.dy*=-1;
+  });
+  requestAnimationFrame(draw);
 }
-
-// partikel background
-const c=document.getElementById('particles'),ctx=c.getContext('2d');
-let p=[];const resize=()=>{c.width=innerWidth;c.height=innerHeight;p=[];for(let i=0;i<80;i++)p.push({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*1.5,dx:Math.random()*0.4-0.2,dy:Math.random()*0.4-0.2})};
-const draw=()=>{ctx.clearRect(0,0,c.width,c.height);ctx.fillStyle='rgba(0,255,255,.4)';p.forEach(i=>{ctx.beginPath();ctx.arc(i.x,i.y,i.r,0,Math.PI*2);ctx.fill();i.x+=i.dx;i.y+=i.dy;if(i.x<0||i.x>c.width)i.dx*=-1;if(i.y<0||i.y>c.height)i.dy*=-1});requestAnimationFrame(draw)};
-resize();draw();addEventListener('resize',resize);
+resize();draw();
+addEventListener('resize',resize);
 </script>
 </body>
 </html>
