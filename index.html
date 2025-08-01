@@ -3,21 +3,23 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
-<title>Loopblaze Calculator</title>
+<title>Loopblaze</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#000;--card:#0a0a0a;--neon:#0ff;--gold:#ffd700}
+:root{--bg:#000;--card:#0a0a0a;--neon:#0ff}
 *{margin:0;padding:0;box-sizing:border-box;font-family:Inter}
 html,body{height:100%;background:#000;color:#fff;display:flex;justify-content:center;align-items:center;overflow:hidden}
-canvas#particles{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1}
-.container{background:var(--card);border-radius:2rem 2rem 3rem 3rem;padding:2.5rem 1.5rem;width:100%;max-width:420px;height:100%;max-height:650px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 0 30px var(--neon)}
+.spark{position:absolute;width:2px;height:2px;background:var(--neon);border-radius:50%;pointer-events:none;opacity:0;animation:sparkle 1.2s ease-out forwards}
+@keyframes sparkle{0%{transform:scale(0) rotate(0deg);opacity:1}100%{transform:scale(1.5) rotate(180deg);opacity:0}}
+.container{background:var(--card);border-radius:2rem 2rem 3rem 3rem;padding:2.5rem 1.5rem;width:100%;max-width:400px;height:100%;max-height:620px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 0 30px var(--neon)}
 h1{color:var(--neon);text-align:center;font-size:1.8rem;margin-bottom:.8rem}
 .field{display:flex;flex-direction:column;margin:.4rem 0}
 label{font-size:.85rem;color:#aaa;margin-bottom:.2rem}
-select,input{padding:.7rem;border:none;border-radius:.6rem;background:#222;color:#fff;transition:box-shadow .3s;font-size:1rem}
-select,input:focus{outline:none;box-shadow:0 0 8px var(--neon)}
-button{margin:.8rem 0;padding:.8rem;border:none;border-radius:.6rem;background:var(--neon);color:#000;font-weight:600;font-size:1rem;cursor:pointer}
-.result{margin-top:.6rem;font-size:1rem;text-align:center}
+input,select{padding:.7rem;border:none;border-radius:.6rem;background:#222;color:#fff;font-size:1rem}
+input:focus,select:focus{outline:none;box-shadow:0 0 12px var(--neon)}
+button{margin:.8rem 0;padding:.8rem;border:none;border-radius:.6rem;background:var(--neon);color:#000;font-size:1rem;font-weight:600;cursor:pointer;transition:filter .3s}
+button:hover{filter:brightness(1.2)}
+.result{margin-top:.6rem;font-size:1rem;text-align:center;color:var(--neon)}
 .tagline{margin-top:1rem;text-align:center;font-size:.75rem;color:#aaa}
 .tagline a{color:var(--neon);text-decoration:none}
 </style>
@@ -27,59 +29,68 @@ button{margin:.8rem 0;padding:.8rem;border:none;border-radius:.6rem;background:v
 <div class="container">
   <h1>Loopblaze</h1>
 
-  <div class="field">
-    <label>Pair</label>
+  <div class="field"><label>Pair</label>
     <select id="pair">
       <option>XAUUSD</option><option>EURUSD</option><option>GBPUSD</option><option>USDJPY</option>
       <option>AUDUSD</option><option>USDCHF</option><option>NZDUSD</option><option>USDCAD</option>
     </select>
   </div>
 
-  <div class="field">
-    <label>Entry (paste bebas 4/5 digit)</label>
-    <input id="entry" type="number" step="any" placeholder="3245  /  1.23456">
+  <div class="field"><label>Price (max 5 digit)</label>
+    <input id="price" type="number" maxlength="5" oninput="this.value=this.value.slice(0,5)" placeholder="3358">
   </div>
 
-  <div class="field">
-    <label>SL (pip)</label>
-    <input id="sl" type="number" placeholder="50">
+  <div class="field"><label>SL (pip)</label>
+    <input id="sl" type="number" maxlength="2" oninput="this.value=this.value.slice(0,2)" placeholder="50">
   </div>
 
-  <div class="field">
-    <label>TP (pip)</label>
-    <input id="tp" type="number" placeholder="100">
+  <div class="field"><label>TP (pip)</label>
+    <input id="tp" type="number" maxlength="2" oninput="this.value=this.value.slice(0,2)" placeholder="100">
   </div>
 
-  <button onclick="calc()">Hitung</button>
+  <button onclick="calc()">Submit</button>
 
-  <div id="result" class="result"></div>
+  <div class="result" id="result"></div>
 
   <div class="tagline">
-    Loopblaze – dibuat untuk membantu trader menjaga risk-reward & konsistensi.<br>
+    Loopblaze – menjaga risk-reward & konsistensi.<br>
     <a href="https://github.com/zerotrace-dev" target="_blank">GitHub @zerotrace-dev</a>
   </div>
 </div>
 
 <script>
-const c=document.getElementById('particles'),ctx=c.getContext('2d');
-let p=[];const resize=()=>{c.width=innerWidth;c.height=innerHeight;p=[];for(let i=0;i<100;i++)p.push({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*1.5,dx:Math.random()*0.4-0.2,dy:Math.random()*0.4-0.2})};
-const draw=()=>{ctx.clearRect(0,0,c.width,c.height);ctx.fillStyle='rgba(0,255,255,.4)';p.forEach(i=>{ctx.beginPath();ctx.arc(i.x,i.y,i.r,0,Math.PI*2);ctx.fill();i.x+=i.dx;i.y+=i.dy;if(i.x<0||i.x>c.width)i.dx*=-1;if(i.y<0||i.y>c.height)i.dy*=-1});requestAnimationFrame(draw)};
-resize();draw();addEventListener('resize',resize);
+// percikan neon pada tombol
+function sparkle(e){
+  for(let i=0;i<30;i++){
+    const s=document.createElement('div');
+    s.className='spark';
+    s.style.left=e.clientX+'px';
+    s.style.top=e.clientY+'px';
+    document.body.appendChild(s);
+    setTimeout(()=>s.remove(),1200);
+  }
+}
+document.querySelector('button').addEventListener('click',sparkle);
 
+// hitung
 function calc(){
-  const entry=+document.getElementById('entry').value;
-  const sl=+document.getElementById('sl').value;
-  const tp=+document.getElementById('tp').value;
+  const price = +document.getElementById('price').value;
+  const sl = +document.getElementById('sl').value;
+  const tp = +document.getElementById('tp').value;
+  if(!price || !sl || !tp){result.innerHTML='';return;}
 
-  // auto-detect digit: >1000 = 4 digit (0.1), else 5 digit (0.0001)
-  const digit = entry > 1000 ? 0.1 : 0.0001;
-  const riskUSD = sl * digit * 1;   // 1 lot
+  const digit = price > 1000 ? 0.1 : 0.0001;
+  const riskUSD = sl * digit * 1;
   const rewardUSD = tp * digit * 1;
   const rr = (rewardUSD / riskUSD).toFixed(2);
-
-  document.getElementById('result').innerHTML =
-    `RR ${rr} | Profit +$${rewardUSD.toFixed(2)} | Loss -$${riskUSD.toFixed(2)}`;
+  result.innerHTML = `RR ${rr} | Profit +$${rewardUSD.toFixed(2)} | Loss -$${riskUSD.toFixed(2)}`;
 }
+
+// partikel background
+const c=document.getElementById('particles'),ctx=c.getContext('2d');
+let p=[];const resize=()=>{c.width=innerWidth;c.height=innerHeight;p=[];for(let i=0;i<80;i++)p.push({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*1.5,dx:Math.random()*0.4-0.2,dy:Math.random()*0.4-0.2})};
+const draw=()=>{ctx.clearRect(0,0,c.width,c.height);ctx.fillStyle='rgba(0,255,255,.4)';p.forEach(i=>{ctx.beginPath();ctx.arc(i.x,i.y,i.r,0,Math.PI*2);ctx.fill();i.x+=i.dx;i.y+=i.dy;if(i.x<0||i.x>c.width)i.dx*=-1;if(i.y<0||i.y>c.height)i.dy*=-1});requestAnimationFrame(draw)};
+resize();draw();addEventListener('resize',resize);
 </script>
 </body>
 </html>
