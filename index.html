@@ -2,100 +2,68 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Neon TradeCalc</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
+<title>Loopblaze</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#000;--card:#111;--neon:#00f5ff;--gold:#ffd700}
+:root{--bg:#000a;--neon:#0ff;--card:#0a0a0a}
 *{margin:0;padding:0;box-sizing:border-box;font-family:Inter}
-body{background:var(--bg);display:flex;justify-content:center;align-items:center;min-height:100vh;overflow:hidden}
-.bg-gold{position:fixed;top:0;left:0;width:200%;height:200%;background:radial-gradient(circle at 20% 50%,#ffd70022 0%,#000 40%);animation:rotate 25s linear infinite;z-index:-1}
-@keyframes rotate{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-.container{position:relative;z-index:1;background:var(--card);border-radius:1rem;padding:2rem;width:100%;max-width:420px;box-shadow:0 0 25px var(--neon);animation:fadeIn .8s}
-@keyframes fadeIn{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
-h2{color:var(--neon);text-align:center;margin-bottom:1.2rem;font-weight:600}
-.field{margin-bottom:1rem}
-label{font-size:.85rem;color:#aaa}
-select,input{width:100%;padding:.7rem;border:none;border-radius:.5rem;background:#222;color:#fff;transition:box-shadow .3s}
-select,input:focus{outline:none;box-shadow:0 0 8px var(--neon)}
-button{width:100%;padding:.8rem;border:none;border-radius:.5rem;background:var(--neon);color:#000;font-weight:600;cursor:pointer;transition:.3s}
-button:hover{filter:brightness(1.2)}
-.result{margin-top:1rem;font-size:.9rem;text-align:center;color:#fff}
-.risk-bar{height:6px;border-radius:3px;background:#333;margin-top:.3rem;overflow:hidden}
-.risk-fill{height:100%;transition:width .6s}
-.hidden{display:none}
+html,body{height:100%;background:#000;color:#fff;overflow:hidden}
+canvas#particles{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1}
+.container{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;padding:.8rem;background:var(--bg);backdrop-filter:blur(8px)}
+h1{color:var(--neon);text-align:center;font-size:1.4rem;margin:.5rem 0}
+.field{display:flex;flex-direction:column;margin:.3rem 0}
+label{font-size:.75rem;color:#aaa;margin-bottom:.2rem}
+select,input{padding:.5rem;border:none;border-radius:.4rem;background:#222;color:#fff;box-shadow:0 0 6px var(--neon)}
+button{margin:.6rem 0;padding:.6rem;border:none;border-radius:.4rem;background:var(--neon);color:#000;font-weight:600}
+.result{margin-top:.4rem;font-size:.75rem;text-align:center}
+.hide{display:none}
 </style>
 </head>
 <body>
-<div class="bg-gold"></div>
+<canvas id="particles"></canvas>
 <div class="container">
-  <h2>Neon TradeCalc</h2>
+  <h1>Loopblaze</h1>
 
-  <!-- Pair -->
-  <div class="field">
-    <label>Pair</label>
+  <div class="field"><label>Pair</label>
     <select id="pair">
       <option>XAUUSD</option><option>EURUSD</option><option>GBPUSD</option><option>USDJPY</option>
       <option>AUDUSD</option><option>USDCHF</option><option>NZDUSD</option><option>USDCAD</option>
     </select>
   </div>
+  <div class="field"><label>Entry</label><input id="entry" type="number" step="0.0001" placeholder="1.2345"></div>
+  <div class="field"><label>SL (pip)</label><input id="sl" type="number" placeholder="50"></div>
+  <div class="field"><label>TP (pip)</label><input id="tp" type="number" placeholder="100"></div>
 
-  <!-- Layer 1 -->
-  <div class="layer" id="layer1">
-    <div class="field"><label>Entry 1</label><input id="entry1" type="number" placeholder="e.g. 1.2345"></div>
-    <div class="field"><label>SL 1 (pip)</label><input id="sl1" type="number" placeholder="e.g. 50"></div>
-    <div class="field"><label>TP 1 (pip)</label><input id="tp1" type="number" placeholder="e.g. 100"></div>
+  <button onclick="calc()">Hitung</button>
+
+  <div id="layer2" class="hide">
+    <div class="field"><label>Entry 2</label><input id="entry2" type="number" step="0.0001" placeholder="1.2400"></div>
+    <div class="field"><label>SL 2</label><input id="sl2" type="number" placeholder="40"></div>
+    <div class="field"><label>TP 2</label><input id="tp2" type="number" placeholder="90"></div>
   </div>
 
-  <!-- Layer 2 (tersembunyi) -->
-  <div id="layer2" class="hidden">
-    <div class="field"><label>Entry 2</label><input id="entry2" type="number" placeholder="e.g. 1.2400"></div>
-    <div class="field"><label>SL 2 (pip)</label><input id="sl2" type="number" placeholder="e.g. 40"></div>
-    <div class="field"><label>TP 2 (pip)</label><input id="tp2" type="number" placeholder="e.g. 90"></div>
-  </div>
+  <p style="text-align:center;font-size:.7rem;color:#666;margin-top:.4rem;cursor:pointer" onclick="toggleLayer()">Entry lebih dr 1 layer? klik</p>
 
-  <!-- Toggle Layer -->
-  <p style="font-size:.7rem;color:#666;text-align:center;cursor:pointer" onclick="toggleLayer()">
-    Entry lebih dari 1 layer? Klik di sini
-  </p>
-
-  <button onclick="calc()">Submit</button>
-
-  <!-- Result -->
-  <div id="result" class="hidden">
-    <div>Risk/Reward: <span id="rr">-</span></div>
-    <div>Kalau TP terkena: +$<span id="tpUSD">0</span></div>
-    <div>Kalau SL terkena: -$<span id="slUSD">0</span></div>
-    <div class="risk-bar"><div class="risk-fill" id="riskFill"></div></div>
-    <div id="riskText" style="margin-top:.3rem;font-size:.8rem"></div>
-  </div>
+  <div class="result" id="result"></div>
 </div>
 
 <script>
-function toggleLayer(){
-  const l2=document.getElementById('layer2');
-  l2.classList.toggle('hidden');
-}
+function toggleLayer(){document.getElementById('layer2').classList.toggle('hide')}
 function calc(){
-  const lotSize=1; // 1 lot = 1 USD per 0.1 pip
-  const e1=+entry1.value, sl1=+sl1.value, tp1=+tp1.value;
-  const e2=+entry2.value || 0, sl2=+sl2.value || 0, tp2=+tp2.value || 0;
-
-  const riskUSD=(sl1+sl2)*lotSize;
-  const rewardUSD=(tp1+tp2)*lotSize;
+  const lot=1; // 1 lot = 1 USD per 0.1 pip
+  const sl1=+sl.value,tp1=+tp.value,sl2=+sl2.value||0,tp2=+tp2.value||0;
+  const riskUSD=(sl1+sl2)*lot;
+  const rewardUSD=(tp1+tp2)*lot;
   const rr=(rewardUSD/riskUSD).toFixed(2);
-
-  result.classList.remove('hidden');
-  rr.textContent=rr;
-  tpUSD.textContent=rewardUSD.toFixed(2);
-  slUSD.textContent=riskUSD.toFixed(2);
-
-  // Risk bar & level
-  const riskLevel=riskUSD<50?'Rendah':riskUSD<150?'Sedang':'Tinggi';
-  riskText.textContent=`Risk: ${riskLevel}`;
-  riskFill.style.width=Math.min(riskUSD/300*100,100)+'%';
-  riskFill.style.background=riskLevel==='Tinggi'?'#ff3b30':riskLevel==='Sedang'?'#ffcc00':'#34c759';
+  result.innerHTML=`RR ${rr} | TP +$${rewardUSD.toFixed(2)} | SL -$${riskUSD.toFixed(2)}`;
 }
+// Partikel neon
+const c=document.getElementById('particles'),ctx=c.getContext('2d');
+let p=[];
+function resize(){c.width=innerWidth;c.height=innerHeight;p=[];for(let i=0;i<80;i++)p.push({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*2,dx:Math.random()*1-.5,dy:Math.random()*1-.5})}
+function draw(){ctx.clearRect(0,0,c.width,c.height);ctx.fillStyle='rgba(0,255,255,.5)';p.forEach(i=>{ctx.beginPath();ctx.arc(i.x,i.y,i.r,0,Math.PI*2);ctx.fill();i.x+=i.dx;i.y+=i.dy;if(i.x<0||i.x>c.width)i.dx*=-1;if(i.y<0||i.y>c.height)i.dy*=-1});requestAnimationFrame(draw)}
+resize();draw();addEventListener('resize',resize);
 </script>
 </body>
 </html>
