@@ -3,21 +3,23 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
-<title>Loopblaze</title>
+<title>Loopblaze Calculator</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#000a;--neon:#0ff;--card:#0a0a0a}
+:root{--bg:#000;--card:#0a0a0a;--neon:#0ff;--gold:#ffd700}
 *{margin:0;padding:0;box-sizing:border-box;font-family:Inter}
-html,body{height:100%;background:#000;color:#fff;overflow:hidden}
+html,body{height:100%;background:#000;color:#fff;display:flex;justify-content:center;align-items:center;overflow:hidden}
 canvas#particles{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1}
-.container{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;padding:.8rem;background:var(--bg);backdrop-filter:blur(8px)}
-h1{color:var(--neon);text-align:center;font-size:1.4rem;margin:.5rem 0}
-.field{display:flex;flex-direction:column;margin:.3rem 0}
-label{font-size:.75rem;color:#aaa;margin-bottom:.2rem}
-select,input{padding:.5rem;border:none;border-radius:.4rem;background:#222;color:#fff;box-shadow:0 0 6px var(--neon)}
-button{margin:.6rem 0;padding:.6rem;border:none;border-radius:.4rem;background:var(--neon);color:#000;font-weight:600}
-.result{margin-top:.4rem;font-size:.75rem;text-align:center}
-.hide{display:none}
+.container{background:var(--card);border-radius:2rem 2rem 3rem 3rem;padding:2.5rem 1.5rem;width:100%;max-width:420px;height:100%;max-height:650px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 0 30px var(--neon)}
+h1{color:var(--neon);text-align:center;font-size:1.8rem;margin-bottom:.8rem}
+.field{display:flex;flex-direction:column;margin:.4rem 0}
+label{font-size:.85rem;color:#aaa;margin-bottom:.2rem}
+select,input{padding:.7rem;border:none;border-radius:.6rem;background:#222;color:#fff;transition:box-shadow .3s;font-size:1rem}
+select,input:focus{outline:none;box-shadow:0 0 8px var(--neon)}
+button{margin:.8rem 0;padding:.8rem;border:none;border-radius:.6rem;background:var(--neon);color:#000;font-weight:600;font-size:1rem;cursor:pointer}
+.result{margin-top:.6rem;font-size:1rem;text-align:center}
+.tagline{margin-top:1rem;text-align:center;font-size:.75rem;color:#aaa}
+.tagline a{color:var(--neon);text-decoration:none}
 </style>
 </head>
 <body>
@@ -25,45 +27,59 @@ button{margin:.6rem 0;padding:.6rem;border:none;border-radius:.4rem;background:v
 <div class="container">
   <h1>Loopblaze</h1>
 
-  <div class="field"><label>Pair</label>
+  <div class="field">
+    <label>Pair</label>
     <select id="pair">
       <option>XAUUSD</option><option>EURUSD</option><option>GBPUSD</option><option>USDJPY</option>
       <option>AUDUSD</option><option>USDCHF</option><option>NZDUSD</option><option>USDCAD</option>
     </select>
   </div>
-  <div class="field"><label>Entry</label><input id="entry" type="number" step="0.0001" placeholder="1.2345"></div>
-  <div class="field"><label>SL (pip)</label><input id="sl" type="number" placeholder="50"></div>
-  <div class="field"><label>TP (pip)</label><input id="tp" type="number" placeholder="100"></div>
+
+  <div class="field">
+    <label>Entry (paste bebas 4/5 digit)</label>
+    <input id="entry" type="number" step="any" placeholder="3245  /  1.23456">
+  </div>
+
+  <div class="field">
+    <label>SL (pip)</label>
+    <input id="sl" type="number" placeholder="50">
+  </div>
+
+  <div class="field">
+    <label>TP (pip)</label>
+    <input id="tp" type="number" placeholder="100">
+  </div>
 
   <button onclick="calc()">Hitung</button>
 
-  <div id="layer2" class="hide">
-    <div class="field"><label>Entry 2</label><input id="entry2" type="number" step="0.0001" placeholder="1.2400"></div>
-    <div class="field"><label>SL 2</label><input id="sl2" type="number" placeholder="40"></div>
-    <div class="field"><label>TP 2</label><input id="tp2" type="number" placeholder="90"></div>
+  <div id="result" class="result"></div>
+
+  <div class="tagline">
+    Loopblaze – dibuat untuk membantu trader menjaga risk-reward & konsistensi.<br>
+    <a href="https://github.com/zerotrace-dev" target="_blank">GitHub @zerotrace-dev</a>
   </div>
-
-  <p style="text-align:center;font-size:.7rem;color:#666;margin-top:.4rem;cursor:pointer" onclick="toggleLayer()">Entry lebih dr 1 layer? klik</p>
-
-  <div class="result" id="result"></div>
 </div>
 
 <script>
-function toggleLayer(){document.getElementById('layer2').classList.toggle('hide')}
-function calc(){
-  const lot=1; // 1 lot = 1 USD per 0.1 pip
-  const sl1=+sl.value,tp1=+tp.value,sl2=+sl2.value||0,tp2=+tp2.value||0;
-  const riskUSD=(sl1+sl2)*lot;
-  const rewardUSD=(tp1+tp2)*lot;
-  const rr=(rewardUSD/riskUSD).toFixed(2);
-  result.innerHTML=`RR ${rr} | TP +$${rewardUSD.toFixed(2)} | SL -$${riskUSD.toFixed(2)}`;
-}
-// Partikel neon
 const c=document.getElementById('particles'),ctx=c.getContext('2d');
-let p=[];
-function resize(){c.width=innerWidth;c.height=innerHeight;p=[];for(let i=0;i<80;i++)p.push({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*2,dx:Math.random()*1-.5,dy:Math.random()*1-.5})}
-function draw(){ctx.clearRect(0,0,c.width,c.height);ctx.fillStyle='rgba(0,255,255,.5)';p.forEach(i=>{ctx.beginPath();ctx.arc(i.x,i.y,i.r,0,Math.PI*2);ctx.fill();i.x+=i.dx;i.y+=i.dy;if(i.x<0||i.x>c.width)i.dx*=-1;if(i.y<0||i.y>c.height)i.dy*=-1});requestAnimationFrame(draw)}
+let p=[];const resize=()=>{c.width=innerWidth;c.height=innerHeight;p=[];for(let i=0;i<100;i++)p.push({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*1.5,dx:Math.random()*0.4-0.2,dy:Math.random()*0.4-0.2})};
+const draw=()=>{ctx.clearRect(0,0,c.width,c.height);ctx.fillStyle='rgba(0,255,255,.4)';p.forEach(i=>{ctx.beginPath();ctx.arc(i.x,i.y,i.r,0,Math.PI*2);ctx.fill();i.x+=i.dx;i.y+=i.dy;if(i.x<0||i.x>c.width)i.dx*=-1;if(i.y<0||i.y>c.height)i.dy*=-1});requestAnimationFrame(draw)};
 resize();draw();addEventListener('resize',resize);
+
+function calc(){
+  const entry=+document.getElementById('entry').value;
+  const sl=+document.getElementById('sl').value;
+  const tp=+document.getElementById('tp').value;
+
+  // auto-detect digit: >1000 = 4 digit (0.1), else 5 digit (0.0001)
+  const digit = entry > 1000 ? 0.1 : 0.0001;
+  const riskUSD = sl * digit * 1;   // 1 lot
+  const rewardUSD = tp * digit * 1;
+  const rr = (rewardUSD / riskUSD).toFixed(2);
+
+  document.getElementById('result').innerHTML =
+    `RR ${rr} | Profit +$${rewardUSD.toFixed(2)} | Loss -$${riskUSD.toFixed(2)}`;
+}
 </script>
 </body>
 </html>
